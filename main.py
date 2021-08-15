@@ -44,7 +44,7 @@ async def on_voice_state_update(user: Member, old: VoiceState, new: VoiceState):
 		if new_v_channel.id == int(TARGET_V_CHANNEL_ID):
 			guild: Guild = new_v_channel.guild
 			categories_num: int = [
-				int(c.name[3:]) for c in guild.categories if c.name.startswith(RECOG_STR)]
+				int(c.name[len(RECOG_STR):]) for c in guild.categories if c.name.startswith(RECOG_STR)]
 			next_categorie = 1
 			if len(categories_num) > 0:
 				next_categorie = max(categories_num) + 1
