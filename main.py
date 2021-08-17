@@ -9,6 +9,8 @@ from discord.ext import commands
 from discord.member import Member, VoiceState
 from dotenv import load_dotenv
 
+from Database.bot_db import BotDb
+
 load_dotenv()
 BASE_URL = 'https://discord.com/api'
 API_TOKEN = os.getenv('API_TOKEN')
@@ -21,6 +23,7 @@ headers = {
 	'Authorization': 'Bot ' + API_TOKEN
 }
 client: commands.Bot = commands.Bot(command_prefix=os.getenv('PREFIX'), intents=discord.Intents.all())
+bot_db = BotDb()
 
 @client.event
 async def on_ready():
@@ -36,6 +39,9 @@ async def on_voice_state_update(user: Member, old: VoiceState, new: VoiceState):
 			[await t.delete() for t in channel_category.text_channels]
 			[await v.delete() for v in channel_category.voice_channels]
 			await channel_category.delete()
+
+			msg_id = bot_db.get_message_id(client.user.id, old_channel.id)
+			requests.delete(f'{BASE_URL}/channels/{INVITE_CHANNEL_ID}/messages/{msg_id}', headers=headers)
 
 	if new.channel is not None:
 		new_v_channel: VoiceChannel = new.channel
@@ -56,6 +62,8 @@ async def on_voice_state_update(user: Member, old: VoiceState, new: VoiceState):
 
 			# 募集をかける
 			invite: discord.Invite = await buntai_channel.create_invite()
-			requests.post(f'{BASE_URL}/channels/{INVITE_CHANNEL_ID}/messages', json={'content': INVITE_ROLE + '\n' + invite.url}, headers=headers)
+			r = requests.post(f'{BASE_URL}/channels/{INVITE_CHANNEL_ID}/messages', json={'content': INVITE_ROLE + '\n' + invite.url}, headers=headers)
+
+			bot_db.insert_messages(client.user.id, int(r.json()['id']), int(INVITE_CHANNEL_ID), buntai_channel.id)
 
 client.run(API_TOKEN)
